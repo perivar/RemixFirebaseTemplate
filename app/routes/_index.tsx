@@ -1,3 +1,5 @@
+// app/routes/_index.tsx
+
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 

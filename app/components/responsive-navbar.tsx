@@ -65,8 +65,8 @@ export default function ResponsiveNavBar() {
         { title: "Help Center", to: "#help", description: "Get support" },
       ],
     },
-    { title: "Pricing", to: "#pricing" },
     { title: "About", to: "/about" },
+    { title: "Login", to: "/login" },
   ];
 
   return (

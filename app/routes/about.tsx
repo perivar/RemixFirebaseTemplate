@@ -1,3 +1,5 @@
+// app/routes/about.tsx
+
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json, MetaFunction, useLoaderData } from "@remix-run/react";
 

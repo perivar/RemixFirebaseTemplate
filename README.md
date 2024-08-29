@@ -7,7 +7,7 @@
 Install new project:
 
 ```shellscript
-npx create-remix@latest ./my-app --template https://github.com/perivar/RemixTemplate
+npx create-remix@latest ./my-app --template https://github.com/perivar/RemixFirebaseTemplate
 ```
 
 ## Linting (ESLint)
