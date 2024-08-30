@@ -1,6 +1,6 @@
 // app/routes/login.tsx
 
-import { SVGProps, useRef, useState } from "react";
+import { FormEvent, SVGProps, useState } from "react";
 import {
   ActionFunctionArgs,
   LinksFunction,
@@ -33,17 +33,22 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { LoadingSpinner } from "~/components/loading-spinner";
 
 export const links: LinksFunction = () => {
   return [];
 };
 
-// use loader to check for existing session, if found, send the user to the blogs site
+// use loader to check for existing session, if found, send the user to index
 export async function loader({ request }: LoaderFunctionArgs) {
-  const userSession = await isSessionValid(request, "/");
+  const userSession = await isSessionValid(request);
 
-  const decodedClaims = userSession?.decodedClaims;
-  return { decodedClaims };
+  if (userSession?.success) {
+    const decodedClaims = userSession?.decodedClaims;
+    return { decodedClaims };
+  } else {
+    return null;
+  }
 }
 
 // our action function will be launched when the submit button is clicked
@@ -68,18 +73,37 @@ export default function Login() {
   const loaderData = useLoaderData<typeof loader>();
 
   const [error, setError] = useState<Error>();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // for refs
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); // this will prevent Remix from submitting the form
+
+    setIsLoading(true);
+
+    // read form elements
+    const form = event.currentTarget;
+    const formElements = form.elements as typeof form.elements & {
+      email: HTMLInputElement;
+      password: HTMLInputElement;
+    };
+
+    const email = formElements.email.value;
+    const password = formElements.password.value;
+
+    await signInWithEmail(email, password);
+    setIsLoading(false);
+  }
 
   const signInWithGoogle = async () => {
+    setIsLoading(true);
+
     await signOut(auth);
     const provider = new GoogleAuthProvider();
 
     signInWithPopup(auth, provider)
       .then(async res => {
         const idToken = await res.user.getIdToken();
+        setIsLoading(false);
         fetcher.submit(
           { idToken: idToken, "google-login": true },
           { method: "post" }
@@ -88,17 +112,14 @@ export default function Login() {
       .catch(err => {
         console.log("signInWithGoogle", err);
         setError(err);
+        setIsLoading(false);
       });
   };
 
-  const signInWithEmail = async () => {
+  const signInWithEmail = async (email: string, password: string) => {
     try {
       await signOut(auth);
-      const authResp = await signInWithEmailAndPassword(
-        auth,
-        emailRef.current?.value ?? "",
-        passwordRef.current?.value ?? ""
-      );
+      const authResp = await signInWithEmailAndPassword(auth, email, password);
 
       // if signin was successful then we have a user
       if (authResp.user) {
@@ -118,7 +139,7 @@ export default function Login() {
 
   return (
     <div className="mx-auto mt-8 max-w-[400px] ">
-      <Form id="login-form">
+      <Form id="login-form" onSubmit={onSubmit}>
         <Card className="w-full max-w-md">
           <CardHeader className="flex items-center justify-between">
             <CardTitle className="text-3xl font-bold">Login</CardTitle>
@@ -133,9 +154,12 @@ export default function Login() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="name@example.com"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
                 required
-                ref={emailRef}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -145,24 +169,12 @@ export default function Login() {
                 name="password"
                 type="password"
                 required
-                ref={passwordRef}
+                disabled={isLoading}
               />
             </div>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => {
-                if (emailRef.current?.value && passwordRef.current?.value) {
-                  signInWithEmail();
-                  setError(new Error());
-                  return true;
-                } else {
-                  setError(new Error("Email and/or Password missing!"));
-                  emailRef.current?.focus();
-                }
-                return false;
-              }}>
-              Sign In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <LoadingSpinner className="mr-2 size-4" />}
+              Sign In with Email
             </Button>
           </CardContent>
           <CardFooter className="flex flex-col items-center gap-2">
@@ -176,9 +188,14 @@ export default function Login() {
                 type="button"
                 className="w-full"
                 variant="outline"
-                onClick={() => signInWithGoogle()}>
-                <ChromeIcon className="mr-2 size-4" />
-                Google
+                onClick={() => signInWithGoogle()}
+                disabled={isLoading}>
+                {isLoading ? (
+                  <LoadingSpinner className="mr-2 size-4" />
+                ) : (
+                  <ChromeIcon className="mr-2 size-4" />
+                )}{" "}
+                Sign In with Google
               </Button>
             </div>
 
@@ -206,7 +223,7 @@ export default function Login() {
         {error ? error.message : null}
       </div>
 
-      {loaderData.decodedClaims?.email && (
+      {loaderData?.decodedClaims?.email && (
         <div className="flex flex-col items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <div className="grid grid-cols-2 gap-2">
             <div>You are logged in as:</div>

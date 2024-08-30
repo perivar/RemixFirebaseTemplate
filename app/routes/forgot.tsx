@@ -1,7 +1,7 @@
 // app/routes/forgot.tsx
 
 import { ActionFunctionArgs, LinksFunction, redirect } from "@remix-run/node";
-import { Form, Link, useActionData } from "@remix-run/react";
+import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { auth } from "~/firebase-service";
 import { sendPasswordResetEmail } from "firebase/auth";
 
@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { LoadingSpinner } from "~/components/loading-spinner";
 
 export const links: LinksFunction = () => {
   return [];
@@ -41,6 +42,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function ForgottenPassword() {
   const actionData = useActionData<typeof action>();
+  const { state } = useNavigation();
+  const isLoading = state === "loading";
 
   return (
     <div className="mx-auto mt-8 max-w-[400px] ">
@@ -61,11 +64,16 @@ export default function ForgottenPassword() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="name@example.com"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <LoadingSpinner className="mr-2 size-4" />}
               Request Password Reset Link
             </Button>
           </CardContent>

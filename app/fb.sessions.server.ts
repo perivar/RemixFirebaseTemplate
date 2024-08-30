@@ -57,7 +57,7 @@ const { getSession, commitSession, destroySession } =
  * @param {*} param0
  * @returns
  */
-export const isSessionValid = async (request: Request, redirectTo: string) => {
+export const isSessionValid = async (request: Request) => {
   const session = await getSession(request.headers.get("cookie"));
   try {
     // Verify the session cookie. In this case an additional check is added to detect
@@ -70,18 +70,12 @@ export const isSessionValid = async (request: Request, redirectTo: string) => {
       );
       return { success: true, decodedClaims };
     } else {
-      return { success: false };
+      const err = new Error("No idToken found");
+      return { success: false, err };
     }
   } catch (error) {
     console.log(error);
-
-    if (error instanceof Error) {
-      // Session cookie is unavailable or invalid. Force user to login.
-      // return { error: error?.message };
-      throw redirect(redirectTo, {
-        statusText: error?.message,
-      });
-    }
+    return { success: false, error };
   }
 };
 
@@ -120,7 +114,6 @@ export const sessionLogin = async (
   redirectTo: string
 ) => {
   await getAuth().verifyIdToken(idToken);
-  console.log("idtoken verified", idToken);
 
   return getAuth()
     .createSessionCookie(idToken, {

@@ -1,7 +1,7 @@
 // app/routes/register.tsx
 
 import { ActionFunctionArgs, LinksFunction } from "@remix-run/node";
-import { Form, Link, useActionData } from "@remix-run/react";
+import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { sessionLogin } from "~/fb.sessions.server";
 import { auth } from "~/firebase-service";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -17,6 +17,7 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { LoadingSpinner } from "~/components/loading-spinner";
 
 export const links: LinksFunction = () => {
   return [];
@@ -49,6 +50,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Register() {
   const actionData = useActionData<typeof action>();
+  const { state } = useNavigation();
+  const isLoading = state === "loading";
 
   return (
     <div className="mx-auto mt-8 max-w-[400px] ">
@@ -67,15 +70,26 @@ export default function Register() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="name@example.com"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                disabled={isLoading}
+              />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <LoadingSpinner className="mr-2 size-4" />}
               Register
             </Button>
           </CardContent>
@@ -90,7 +104,7 @@ export default function Register() {
         </Card>
       </Form>
 
-      <div className="mt-5 flex flex-col items-center gap-2 text-sm text-red-600">
+      <div className="mt-2 flex flex-col items-center gap-2 text-sm text-red-600">
         {actionData?.error ? (actionData?.error as Error).message : null}
       </div>
     </div>

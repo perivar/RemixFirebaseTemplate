@@ -11,11 +11,8 @@ console.log("initializing firebase app: " + JSON.stringify(firebaseConfig));
 // console.log('Initializing firebase app');
 
 // Initialize Firebase
-if (getApps().length === 0) {
-  initializeApp(firebaseConfig);
-}
-
-const auth = getAuth(getApp());
-const db = getFirestore(getApp());
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 export { auth, db };

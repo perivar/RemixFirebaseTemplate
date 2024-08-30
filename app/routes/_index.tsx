@@ -1,7 +1,8 @@
 // app/routes/_index.tsx
 
-import type { MetaFunction } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
+import { isSessionValid } from "~/fb.sessions.server";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -31,12 +32,44 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+// use loader to check for existing session, if not found, send the user to login
+export async function loader({ request }: LoaderFunctionArgs) {
+  const userSession = await isSessionValid(request);
+
+  if (userSession?.success) {
+    const decodedClaims = userSession?.decodedClaims;
+    return { decodedClaims };
+  } else {
+    return null;
+    // throw redirect("/login", {
+    //   statusText: (userSession?.error as Error)?.message,
+    // });
+  }
+}
+
 export default function Index() {
   const { toast } = useToast();
+  const loaderData = useLoaderData<typeof loader>();
 
   return (
     <section className="flex min-h-screen w-full flex-col">
-      <div className="container flex flex-1 justify-center overflow-x-hidden px-4 py-8 md:px-6">
+      {loaderData?.decodedClaims?.email && (
+        <div className="mt-2 flex flex-col items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="grid grid-cols-2 gap-2">
+            <div>You are logged in as:</div>
+            <div className="text-blue-600">
+              {loaderData.decodedClaims?.email}
+            </div>
+          </div>
+          <div className="text-center">
+            Do you want to{" "}
+            <Link to="/logout" className="font-medium underline">
+              Log Out?
+            </Link>
+          </div>
+        </div>
+      )}
+      <div className="container flex flex-1 justify-center overflow-x-hidden p-4 md:px-6">
         <div className="flex flex-col items-center space-y-4 p-4 text-center md:w-1/2">
           <h1 className="text-3xl font-bold tracking-tighter md:text-4xl">
             A{" "}
