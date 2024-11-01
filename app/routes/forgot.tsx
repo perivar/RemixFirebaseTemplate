@@ -1,10 +1,10 @@
 // app/routes/forgot.tsx
 
-import { ActionFunctionArgs, LinksFunction, redirect } from "@remix-run/node";
-import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
-import { auth } from "~/firebase-service";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { FormEvent, useState } from "react";
+import { LinksFunction } from "@remix-run/node";
+import { Form, Link, useNavigate } from "@remix-run/react";
 
+import { useFirebaseAuth } from "~/hooks/useFirebaseAuth";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -16,38 +16,49 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { LoadingSpinner } from "~/components/loading-spinner";
+import { LoadingSpinner } from "~/components/LoadingSpinner";
 
 export const links: LinksFunction = () => {
   return [];
 };
 
-export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-
-  const email = formData.get("email" ?? "") as string;
-
-  // perform firebase send password reset email
-  try {
-    await sendPasswordResetEmail(auth, email);
-  } catch (error) {
-    if (error instanceof Error) {
-      return { error: { message: error?.message } };
-    }
-  }
-
-  // success, send user to /login page
-  return redirect("/login");
-}
-
 export default function ForgottenPassword() {
-  const actionData = useActionData<typeof action>();
-  const { state } = useNavigation();
-  const isLoading = state === "loading";
+  const navigate = useNavigate();
+  const [error, setError] = useState<Error>();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const { sendForgottenPasswordEmail } = useFirebaseAuth();
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); // this will prevent Remix from submitting the form
+
+    setIsLoading(true);
+
+    // read form elements
+    const form = event.currentTarget;
+    const formElements = form.elements as typeof form.elements & {
+      email: HTMLInputElement;
+    };
+
+    const email = formElements.email.value;
+
+    try {
+      await sendForgottenPasswordEmail(email);
+      console.log("Forgotten epost sent successfully!");
+      return navigate(`/login`);
+    } catch (err) {
+      console.log("sendForgottenPasswordEmail", err);
+      if (err instanceof Error) {
+        setError(err);
+      }
+    }
+
+    setIsLoading(false);
+  }
 
   return (
     <div className="mx-auto mt-8 max-w-[400px] ">
-      <Form id="forgotten-form" method="post">
+      <Form id="forgotten-form" method="post" onSubmit={onSubmit}>
         <Card className="w-full max-w-md">
           <CardHeader className="flex items-center justify-between">
             <CardTitle className="text-3xl font-bold">
@@ -88,9 +99,12 @@ export default function ForgottenPassword() {
         </Card>
       </Form>
 
-      <div className="mt-5 flex flex-col items-center gap-2 text-sm text-red-600">
-        {actionData?.error ? (actionData?.error as Error).message : null}
-      </div>
+      {/* Display error if exists */}
+      {error && (
+        <p className="mt-1 flex w-full items-center justify-center text-red-600 dark:text-red-400">
+          {error.message}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,8 +1,10 @@
 // app/routes/_index.tsx
 
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
-import { isSessionValid } from "~/fb.sessions.server";
+import { json, Link, useLoaderData } from "@remix-run/react";
+import { useFirebase } from "~/context/FirebaseContext";
+import i18next from "~/i18n/i18n.server";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -25,65 +27,57 @@ import {
 import { ToastAction } from "~/components/ui/toast";
 import { useToast } from "~/components/ui/use-toast";
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: data?.title },
+    { name: "description", content: data?.description },
   ];
 };
 
 // use loader to check for existing session, if not found, send the user to login
 export async function loader({ request }: LoaderFunctionArgs) {
-  const userSession = await isSessionValid(request);
+  const t = await i18next.getFixedT(request);
 
-  if (userSession?.success) {
-    const decodedClaims = userSession?.decodedClaims;
-    return { decodedClaims };
-  } else {
-    return null;
-    // throw redirect("/login", {
-    //   statusText: (userSession?.error as Error)?.message,
-    // });
-  }
+  return json({
+    welcome_to: t("welcome_to"),
+    title: t("title"),
+    description: t("description"),
+  });
 }
 
 export default function Index() {
-  const { toast } = useToast();
   const loaderData = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { user } = useFirebase();
 
   return (
-    <section className="flex min-h-screen w-full flex-col">
-      {loaderData?.decodedClaims?.email && (
-        <div className="mt-2 flex flex-col items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+    <section className="mb-4 flex min-h-screen w-full flex-col">
+      {user?.email && (
+        <div className="mt-5 flex flex-col items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <div className="grid grid-cols-2 gap-2">
-            <div>You are logged in as:</div>
-            <div className="text-blue-600">
-              {loaderData.decodedClaims?.email}
-            </div>
+            <div>{t("logged_in_as")}:</div>
+            <div className="text-blue-600">{user?.email}</div>
           </div>
           <div className="text-center">
-            Do you want to{" "}
             <Link to="/logout" className="font-medium underline">
-              Log Out?
+              {t("logout")}?
             </Link>
           </div>
         </div>
       )}
+
       <div className="container flex flex-1 justify-center overflow-x-hidden p-4 md:px-6">
         <div className="flex flex-col items-center space-y-4 p-4 text-center md:w-1/2">
-          <h1 className="text-3xl font-bold tracking-tighter md:text-4xl">
-            A{" "}
+          <h1 className="text-3xl font-bold tracking-tighter md:text-3xl">
             <span className="bg-gradient-to-r from-orange-700 via-blue-500 to-green-400 bg-clip-text font-extrabold text-transparent">
-              Simple Starter
-            </span>{" "}
-            For Remix and Shadcn-ui
+              {loaderData.welcome_to}
+            </span>
           </h1>
+          <h2 className="mt-2 text-2xl">{loaderData.title}</h2>
 
           <div className="font-sans">
-            <h1 className="text-2xl font-bold tracking-tighter md:text-3xl">
-              Welcome to Remix
-            </h1>
-            <ul className="mt-4 list-disc">
+            <ul className="list-disc">
               <li>
                 <Link
                   className="hover:underline"
