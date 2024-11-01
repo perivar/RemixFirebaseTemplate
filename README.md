@@ -1,4 +1,6 @@
-# Welcome to Remix!
+# Welcome to a Remix + Shadcn Template
+
+## w/ support for Firebase Auth, Dark Mode and i18n
 
 - 📖 [Remix docs](https://remix.run/docs)
 
